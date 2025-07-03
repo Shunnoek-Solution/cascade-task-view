@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { ChevronRight, ChevronDown, Plus, Trash2, Edit3, Check, X } from 'lucide-react';
 import { Task } from '../types/Task';
 import { AddTaskForm } from './AddTaskForm';
+import { TaskDescriptionEditor } from './TaskDescriptionEditor';
 import { ProgressBar } from './ProgressBar';
 import { calculateProgress } from '../utils/taskUtils';
 
@@ -12,6 +13,7 @@ interface TaskItemProps {
   onDelete: (taskId: string) => void;
   onToggle: (taskId: string) => void;
   onUpdate: (taskId: string, newTitle: string) => void;
+  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   level: number;
 }
 
@@ -21,6 +23,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onDelete,
   onToggle,
   onUpdate,
+  onUpdateTask,
   level,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -53,6 +56,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const handleCancelEdit = () => {
     setEditTitle(task.title);
     setIsEditing(false);
+  };
+
+  const handleDescriptionSave = (description: string) => {
+    onUpdateTask(task.id, { description });
   };
 
   const completionColor = task.completed 
@@ -170,6 +177,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </div>
       </div>
 
+      {/* Task Description */}
+      {!isEditing && (
+        <div 
+          className="mt-2 animate-fade-in"
+          style={{ marginLeft: `${(indentLevel + 2) * 24}px` }}
+        >
+          <TaskDescriptionEditor
+            description={task.description}
+            onSave={handleDescriptionSave}
+            placeholder="Add description..."
+            compact
+          />
+        </div>
+      )}
+
       {/* Add Child Form */}
       {showAddForm && (
         <div 
@@ -196,6 +218,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               onDelete={onDelete}
               onToggle={onToggle}
               onUpdate={onUpdate}
+              onUpdateTask={onUpdateTask}
               level={level + 1}
             />
           ))}

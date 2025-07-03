@@ -5,16 +5,19 @@ import { AppSidebar } from './AppSidebar';
 import { TaskTemplates } from './TaskTemplates';
 import { DarkModeToggle } from './DarkModeToggle';
 import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
+import { KanbanView } from './KanbanView';
 import { Task } from '../types/Task';
 import { generateId } from '../utils/taskUtils';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { LayoutGrid, List } from 'lucide-react';
 
 export const TaskManager = () => {
   const [tasks, setTasks] = useLocalStorage('devtasks-data', []);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [viewMode, setViewMode] = useState<'tree' | 'kanban'>('tree');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const addTask = useCallback((parentId: string | null, title: string) => {
@@ -89,17 +92,6 @@ export const TaskManager = () => {
     setTasks(prevTasks => toggleTaskInList(prevTasks));
   }, [setTasks]);
 
-  const updateTask = useCallback((taskId: string, newTitle: string) => {
-    const updateTaskInList = (taskList: Task[]): Task[] =>
-      taskList.map(task =>
-        task.id === taskId
-          ? { ...task, title: newTitle }
-          : { ...task, children: updateTaskInList(task.children) }
-      );
-
-    setTasks(prevTasks => updateTaskInList(prevTasks));
-  }, [setTasks]);
-
   const findTaskById = (taskId: string, taskList: Task[] = tasks): Task | null => {
     for (const task of taskList) {
       if (task.id === taskId) return task;
@@ -108,6 +100,21 @@ export const TaskManager = () => {
     }
     return null;
   };
+
+  const updateTask = useCallback((taskId: string, updates: Partial<Task>) => {
+    const updateTaskInList = (taskList: Task[]): Task[] =>
+      taskList.map(task =>
+        task.id === taskId
+          ? { ...task, ...updates }
+          : { ...task, children: updateTaskInList(task.children) }
+      );
+
+    setTasks(prevTasks => updateTaskInList(prevTasks));
+  }, [setTasks]);
+
+  const updateTaskTitle = useCallback((taskId: string, newTitle: string) => {
+    updateTask(taskId, { title: newTitle });
+  }, [updateTask]);
 
   const selectedTask = selectedTaskId ? findTaskById(selectedTaskId) : null;
 
@@ -121,6 +128,16 @@ export const TaskManager = () => {
   });
 
   const renderMainContent = () => {
+    if (viewMode === 'kanban') {
+      return (
+        <KanbanView
+          tasks={tasks}
+          onUpdateTask={updateTask}
+          onToggleTask={toggleTask}
+        />
+      );
+    }
+
     if (selectedTaskId && selectedTask) {
       return (
         <div className="space-y-2">
@@ -134,6 +151,30 @@ export const TaskManager = () => {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <div className="flex items-center bg-slate-700 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('tree')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
+                    viewMode === 'tree' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                  Tree
+                </button>
+                <button
+                  onClick={() => setViewMode('kanban')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
+                    viewMode === 'kanban' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Kanban
+                </button>
+              </div>
               <TaskTemplates onSelectTemplate={addTasksFromTemplate} />
               <KeyboardShortcutsHelp />
               <DarkModeToggle />
@@ -145,7 +186,8 @@ export const TaskManager = () => {
             onAddChild={addTask}
             onDelete={deleteTask}
             onToggle={toggleTask}
-            onUpdate={updateTask}
+            onUpdate={updateTaskTitle}
+            onUpdateTask={updateTask}
             level={0}
           />
         </div>
@@ -164,51 +206,86 @@ export const TaskManager = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <div className="flex items-center bg-slate-700 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('tree')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
+                  viewMode === 'tree' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                Tree
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
+                  viewMode === 'kanban' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Kanban
+              </button>
+            </div>
             <TaskTemplates onSelectTemplate={addTasksFromTemplate} />
             <KeyboardShortcutsHelp />
             <DarkModeToggle />
           </div>
         </div>
         
-        {showAddForm && (
-          <AddTaskForm
-            onAddTask={(title) => {
-              addTask(null, title);
-              setShowAddForm(false);
-            }}
-            onCancel={() => setShowAddForm(false)}
-            placeholder="Enter main task..."
-            autoFocus
+        {viewMode === 'kanban' ? (
+          <KanbanView
+            tasks={tasks}
+            onUpdateTask={updateTask}
+            onToggleTask={toggleTask}
           />
-        )}
-
-        {tasks.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-slate-500 text-lg mb-2">No tasks yet</div>
-            <div className="text-slate-600 text-sm mb-4">
-              Create your first task or use a template to get started
-            </div>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
-            >
-              Create Task
-            </button>
-          </div>
         ) : (
-          <div className="space-y-2">
-            {tasks.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onAddChild={addTask}
-                onDelete={deleteTask}
-                onToggle={toggleTask}
-                onUpdate={updateTask}
-                level={0}
+          <>
+            {showAddForm && (
+              <AddTaskForm
+                onAddTask={(title) => {
+                  addTask(null, title);
+                  setShowAddForm(false);
+                }}
+                onCancel={() => setShowAddForm(false)}
+                placeholder="Enter main task..."
+                autoFocus
               />
-            ))}
-          </div>
+            )}
+
+            {tasks.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-slate-500 text-lg mb-2">No tasks yet</div>
+                <div className="text-slate-600 text-sm mb-4">
+                  Create your first task or use a template to get started
+                </div>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+                >
+                  Create Task
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {tasks.map(task => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    onAddChild={addTask}
+                    onDelete={deleteTask}
+                    onToggle={toggleTask}
+                    onUpdate={updateTaskTitle}
+                    onUpdateTask={updateTask}
+                    level={0}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     );
