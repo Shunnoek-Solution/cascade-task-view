@@ -23,36 +23,35 @@ export const useKeyboardShortcuts = ({
         return;
       }
 
-      const { key, ctrlKey, metaKey, shiftKey } = event;
+      const { key, ctrlKey, metaKey } = event;
       const cmdOrCtrl = ctrlKey || metaKey;
 
-      switch (true) {
-        // Ctrl/Cmd + N - Add new task
-        case cmdOrCtrl && key === 'n':
-          event.preventDefault();
-          onAddTask();
-          break;
+      // Ctrl/Cmd + N - Add new task
+      if (cmdOrCtrl && key === 'n') {
+        event.preventDefault();
+        onAddTask();
+        return;
+      }
 
-        // Delete - Delete selected task
-        case key === 'Delete' && selectedTaskId:
-          event.preventDefault();
-          onDeleteTask();
-          break;
+      // Delete - Delete selected task
+      if (key === 'Delete' && selectedTaskId) {
+        event.preventDefault();
+        onDeleteTask();
+        return;
+      }
 
-        // Space - Toggle selected task completion
-        case key === ' ' && selectedTaskId:
-          event.preventDefault();
-          onToggleTask();
-          break;
+      // Space - Toggle selected task completion
+      if (key === ' ' && selectedTaskId) {
+        event.preventDefault();
+        onToggleTask();
+        return;
+      }
 
-        // Ctrl/Cmd + K - Focus search
-        case cmdOrCtrl && key === 'k':
-          event.preventDefault();
-          onSearch();
-          break;
-
-        default:
-          break;
+      // Ctrl/Cmd + K - Focus search
+      if (cmdOrCtrl && key === 'k') {
+        event.preventDefault();
+        onSearch();
+        return;
       }
     };
 

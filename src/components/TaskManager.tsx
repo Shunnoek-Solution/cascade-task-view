@@ -12,12 +12,14 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { LayoutGrid, List } from 'lucide-react';
 
+type ViewMode = 'tree' | 'kanban';
+
 export const TaskManager = () => {
   const [tasks, setTasks] = useLocalStorage('devtasks-data', []);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [viewMode, setViewMode] = useState<'tree' | 'kanban'>('tree');
+  const [viewMode, setViewMode] = useState<ViewMode>('tree');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const addTask = useCallback((parentId: string | null, title: string) => {
